@@ -43,7 +43,7 @@ spec:
             description: DatasourceSpec defines the desired state of Datasource
             properties:
               creator:
-                description: Creator defines datasource creator(AUTO-FILLED by webhook)
+                description: Creator defines datasource creator (AUTO-FILLED by webhook)
                 type: string
               description:
                 description: Description defines datasource description
