@@ -1,0 +1,17 @@
+name: Generate Graphql JS SDK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'graphql-server/go-server/graph/schema/**'
+  workflow_dispatch:
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: make sdk
+        run: |
+          make gql-sdk-generator
