@@ -260,7 +260,7 @@ run-graphql-server:
 GRL_SDK_GENERATOR_IMAGE ?= kubebb/gql-sdk-generator
 .PHONY: gql-sdk-generator
 gql-sdk-generator: run-graphql-server
-	docker run -v $(shell pwd)/graphql-server/go-server/graph/schema:/schema ${GRL_SDK_GENERATOR_IMAGE}:main
+	docker run --env SDK_PACKAGE_NAME=@yuntijs/arcadia-bff-sdk --env SDK_YUNTI_NAME=ArcadiaBffSDK -v $(shell pwd)/graphql-server/go-server/graph/schema:/schema ${GRL_SDK_GENERATOR_IMAGE}:main
 
 
 # prepare for git push
