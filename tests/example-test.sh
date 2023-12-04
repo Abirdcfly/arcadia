@@ -259,4 +259,9 @@ info "port-forward portal in pid: $portal_pid"
 sleep 3
 curl -XPOST http://127.0.0.1:8081/chat --data '{"query":"hi, how are you?","response_mode":"blocking","conversion_id":"","app_name":"base-chat-english-teacher", "app_namespace":"arcadia"}'
 
+kubectl apply -f config/samples/app_retrievalqachain_knowledgebase.yaml
+waitCRDStatusReady "Application" "arcadia" "base-chat-with-knowledgebase"
+sleep 3
+curl -XPOST http://127.0.0.1:8081/chat --data '{"query":"旷工最小计算单位为多少天？","response_mode":"blocking","conversion_id":"","app_name":"base-chat-with-knowledgebase", "app_namespace":"arcadia"}'
+
 info "all finished! ✅"
