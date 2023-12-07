@@ -37,6 +37,7 @@ query listModels($input: ListCommonInput!,$filesInput: FileFilter){
     }
   }
 }
+}
 
 # get
 query getModel($name: String!, $namespace: String!,$filesInput: FileFilter) {
