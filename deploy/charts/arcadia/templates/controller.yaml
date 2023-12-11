@@ -27,6 +27,7 @@ spec:
       containers:
       - command:
         - /manager
+        - --v={{ .Values.controller.logLevel }}
         env:
           - name: POD_NAME
             valueFrom:

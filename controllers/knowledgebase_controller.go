@@ -30,6 +30,7 @@ import (
 	"github.com/tmc/langchaingo/documentloaders"
 	langchainembeddings "github.com/tmc/langchaingo/embeddings"
 	"github.com/tmc/langchaingo/llms/openai"
+	"github.com/tmc/langchaingo/schema"
 	"github.com/tmc/langchaingo/textsplitter"
 	"github.com/tmc/langchaingo/vectorstores/chroma"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -435,17 +436,22 @@ func (r *KnowledgeBaseReconciler) handleFile(ctx context.Context, log logr.Logge
 		return err
 	}
 	dataReader := bytes.NewReader(data)
+	var documents []schema.Document
 	var loader documentloaders.Loader
 	switch filepath.Ext(fileName) {
-	case "txt":
+	case ".txt":
 		loader = documentloaders.NewText(dataReader)
-	case "csv":
+	case ".csv":
 		if v == arcadiav1alpha1.ObjectTypeQA {
 			loader = pkgdocumentloaders.NewQACSV(dataReader, fileName, "q", "a")
+			documents, err = loader.Load(ctx)
+			if err != nil {
+				return err
+			}
 		} else {
 			loader = documentloaders.NewCSV(dataReader)
 		}
-	case "html", "htm":
+	case ".html", ".htm":
 		loader = documentloaders.NewHTML(dataReader)
 	default:
 		loader = documentloaders.NewText(dataReader)
@@ -475,11 +481,15 @@ func (r *KnowledgeBaseReconciler) handleFile(ctx context.Context, log logr.Logge
 	//	)
 	//}
 
-	documents, err := loader.LoadAndSplit(ctx, split)
-	if err != nil {
-		return err
+	if len(documents) == 0 {
+		documents, err = loader.LoadAndSplit(ctx, split)
+		if err != nil {
+			return err
+		}
 	}
-
+	for i, doc := range documents {
+		log.V(5).Info(fmt.Sprintf("document[%d]: embedding:%s, metadata:%v", i, doc.PageContent, doc.Metadata))
+	}
 	switch store.Spec.Type() { // nolint: gocritic
 	case arcadiav1alpha1.VectorStoreTypeChroma:
 		s, err := chroma.New(
@@ -511,6 +521,7 @@ func (r *KnowledgeBaseReconciler) reconcileDelete(ctx context.Context, log logr.
 			chroma.WithChromaURL(vectorStore.Spec.Enpoint.URL),
 			chroma.WithDistanceFunction(vectorStore.Spec.Chroma.DistanceFunction),
 			chroma.WithNameSpace(kb.VectorStoreCollectionName()),
+			chroma.WithOpenAiAPIKey("fake"),
 		)
 		if err != nil {
 			log.Error(err, "reconcile delete: init vector store error, may leave garbage data")

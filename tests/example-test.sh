@@ -180,7 +180,7 @@ kind load docker-image controller:example-e2e --name=$KindName
 
 info "3. install arcadia"
 kubectl create namespace arcadia
-helm install -narcadia arcadia deploy/charts/arcadia -f tests/deploy-values.yaml --set controller.image=controller:example-e2e --set apiserver.image=controller:example-e2e --wait --timeout $HelmTimeout
+helm install -narcadia arcadia deploy/charts/arcadia -f tests/deploy-values.yaml --set controller.image=controller:example-e2e --set apiserver.image=controller:example-e2e --wait --timeout $HelmTimeout --set controller.logLevel=5
 
 info "4. check system datasource arcadia-minio(system datasource)"
 waitCRDStatusReady "Datasource" "arcadia" "arcadia-minio"
@@ -264,4 +264,5 @@ waitCRDStatusReady "Application" "arcadia" "base-chat-with-knowledgebase"
 sleep 3
 curl -XPOST http://127.0.0.1:8081/chat --data '{"query":"旷工最小计算单位为多少天？","response_mode":"blocking","conversion_id":"","app_name":"base-chat-with-knowledgebase", "app_namespace":"arcadia"}' | jq -e '.message'
 
+exit 1
 info "all finished! ✅"
