@@ -104,6 +104,5 @@ func (z ZhiPuAILLM) GeneratePrompt(ctx context.Context, promptValues []schema.Pr
 }
 
 func (z ZhiPuAILLM) GetNumTokens(text string) int {
-	// TODO implement me
-	panic("implement me")
+	return langchainllm.CountTokens("gpt2", text)
 }

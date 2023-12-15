@@ -25,9 +25,10 @@ import (
 
 // KnowledgeBaseRetrieverSpec defines the desired state of KnowledgeBaseRetriever
 type KnowledgeBaseRetrieverSpec struct {
-	v1alpha1.CommonSpec `json:",inline"`
-	Input               Input  `json:"input,omitempty"`
-	Output              Output `json:"output,omitempty"`
+	v1alpha1.CommonSpec   `json:",inline"`
+	Input                 Input  `json:"input,omitempty"`
+	Output                Output `json:"output,omitempty"`
+	CommonRetrieverConfig `json:",inline"`
 }
 
 type Input struct {
@@ -36,6 +37,10 @@ type Input struct {
 
 type Output struct {
 	node.CommonOrInPutOrOutputRef `json:",inline"`
+}
+
+type CommonRetrieverConfig struct {
+	ScoreThreshold float32 `json:"scoreThreshold,omitempty"` // TODO
 }
 
 // KnowledgeBaseRetrieverStatus defines the observed state of KnowledgeBaseRetriever

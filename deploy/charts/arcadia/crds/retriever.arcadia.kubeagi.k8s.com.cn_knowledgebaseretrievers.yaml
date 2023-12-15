@@ -82,6 +82,8 @@ spec:
                     description: Name is the name of resource being referenced
                     type: string
                 type: object
+              scoreThreshold:
+                type: number
             type: object
           status:
             description: KnowledgeBaseRetrieverStatus defines the observed state of
