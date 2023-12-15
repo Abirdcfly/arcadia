@@ -249,22 +249,60 @@ else
 	exit 1
 fi
 
-info "8 validation：simple app of llmchain can work normally"
+info "8 validate simple app can work normally"
+info "8.1 app of llmchain"
 kubectl apply -f config/samples/app_llmchain_englishteacher.yaml
 waitCRDStatusReady "Application" "arcadia" "base-chat-english-teacher"
 kubectl port-forward svc/arcadia-apiserver -n arcadia 8081:8081 >/dev/null 2>&1 &
 portal_pid=$!
 info "port-forward portal in pid: $portal_pid"
 sleep 3
-curl -XPOST http://127.0.0.1:8081/chat --data '{"query":"hi, how are you?","response_mode":"blocking","conversion_id":"","app_name":"base-chat-english-teacher", "app_namespace":"arcadia"}' | jq -e '.message'
+resp=$(curl -XPOST http://127.0.0.1:8081/chat --data '{"query":"hi, how are you?","response_mode":"blocking","conversion_id":"","app_name":"base-chat-english-teacher", "app_namespace":"arcadia"}')
+echo ${resp}
+echo ${resp} | jq -e '.message'
 
-info "9 validation：QA app using knowledgebase can work normally"
+info "8.2 QA app using knowledgebase"
 kubectl apply -f config/samples/app_retrievalqachain_knowledgebase.yaml
 waitCRDStatusReady "Application" "arcadia" "base-chat-with-knowledgebase"
 sleep 3
-curl -XPOST http://127.0.0.1:8081/chat --data '{"query":"旷工最小计算单位为多少天？","response_mode":"blocking","conversion_id":"","app_name":"base-chat-with-knowledgebase", "app_namespace":"arcadia"}' | jq -e '.message'
+resp=$(curl -XPOST http://127.0.0.1:8081/chat --data '{"query":"旷工最小计算单位为多少天？","response_mode":"blocking","conversion_id":"","app_name":"base-chat-with-knowledgebase", "app_namespace":"arcadia"}')
+echo ${resp}
+echo ${resp} | jq -e '.message'
 
-info "10 show apiserver logs for debug"
+info "8.3 conversion chat app"
+kubectl apply -f config/samples/app_llmchain_chat_with_bot.yaml
+waitCRDStatusReady "Application" "arcadia" "base-chat-with-bot"
+sleep 3
+resp=$(curl -XPOST http://127.0.0.1:8081/chat --data '{"query":"Hi! I am Jim","response_mode":"blocking","conversion_id":"","app_name":"base-chat-with-bot", "app_namespace":"arcadia"}')
+echo $resp
+echo $resp | jq -e '.message'
+conversion_id=$(echo $resp | jq -r '.conversion_id')
+
+resp=$(curl -XPOST http://127.0.0.1:8081/chat --data '{"query":"What is my name?","response_mode":"blocking","conversion_id":"'$conversion_id'","app_name":"base-chat-with-bot", "app_namespace":"arcadia"}')
+echo $resp
+echo $resp | jq -e '.message'
+if [[ $resp != *"Jim"* ]]; then
+	echo "Because conversionWindowSize is enabled to be 2, llm should record history, but resp:"$resp "dont contains Jim"
+	exit 1
+fi
+
+resp=$(curl -XPOST http://127.0.0.1:8081/chat --data '{"query":"What is your model?","response_mode":"blocking","conversion_id":"'$conversion_id'","app_name":"base-chat-with-bot", "app_namespace":"arcadia"}')
+echo $resp
+echo $resp | jq -e '.message'
+
+resp=$(curl -XPOST http://127.0.0.1:8081/chat --data '{"query":"When was the model you used released?","response_mode":"blocking","conversion_id":"'$conversion_id'","app_name":"base-chat-with-bot", "app_namespace":"arcadia"}')
+echo $resp
+echo $resp | jq -e '.message'
+
+resp=$(curl -XPOST http://127.0.0.1:8081/chat --data '{"query":"What is my name?","response_mode":"blocking","conversion_id":"'$conversion_id'","app_name":"base-chat-with-bot", "app_namespace":"arcadia"}')
+echo $resp
+echo $resp | jq -e '.message'
+if [[ $resp == *"Jim"* ]]; then
+	echo "Because conversionWindowSize is enabled to be 2, and current is the 5th conversion, llm should not record My name, but resp:"$resp "still contains Jim"
+	exit 1
+fi
+
+info "9. show apiserver logs for debug"
 kubectl logs --tail=100 -n arcadia -l app=arcadia-apiserver >/tmp/apiserver.log
 cat /tmp/apiserver.log
 

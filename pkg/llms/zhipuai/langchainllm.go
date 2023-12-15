@@ -21,6 +21,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"reflect"
 	"strings"
 
 	"github.com/r3labs/sse/v2"
@@ -30,80 +31,113 @@ import (
 )
 
 var (
-	ErrEmptyResponse       = errors.New("no response")
-	ErrEmptyPrompt         = errors.New("empty prompt")
-	ErrIncompleteEmbedding = errors.New("no all input got emmbedded")
+	ErrEmptyResponse = errors.New("no response")
+	ErrEmptyPrompt   = errors.New("empty prompt")
+)
+
+var (
+	_ langchainllm.LanguageModel = (*ZhiPuAILLM)(nil)
+	_ langchainllm.ChatLLM       = (*ZhiPuAILLM)(nil)
 )
 
 type ZhiPuAILLM struct {
 	ZhiPuAI
 }
 
-func (z ZhiPuAILLM) Call(ctx context.Context, prompt string, options ...langchainllm.CallOption) (string, error) {
-	r, err := z.Generate(ctx, []string{prompt}, options...)
-	if err != nil {
-		return "", err
-	}
-	if len(r) == 0 {
-		return "", ErrEmptyResponse
-	}
-	return r[0].Text, nil
+func (z *ZhiPuAILLM) GeneratePrompt(ctx context.Context, promptValues []schema.PromptValue, options ...langchainllm.CallOption) (langchainllm.LLMResult, error) {
+	return langchainllm.GenerateChatPrompt(ctx, z, promptValues, options...)
 }
 
-func (z ZhiPuAILLM) Generate(ctx context.Context, prompts []string, options ...langchainllm.CallOption) ([]*langchainllm.Generation, error) {
+func (z *ZhiPuAILLM) GetNumTokens(text string) int {
+	return langchainllm.CountTokens("gpt2", text)
+}
+
+var _ langchainllm.ChatLLM = (*ZhiPuAILLM)(nil)
+
+func (z *ZhiPuAILLM) Call(ctx context.Context, messages []schema.ChatMessage, options ...langchainllm.CallOption) (*schema.AIChatMessage, error) {
+	r, err := z.Generate(ctx, [][]schema.ChatMessage{messages}, options...)
+	if err != nil {
+		return nil, err
+	}
+	if len(r) == 0 {
+		return nil, ErrEmptyResponse
+	}
+	return r[0].Message, nil
+}
+
+func (z *ZhiPuAILLM) Generate(ctx context.Context, messageSets [][]schema.ChatMessage, options ...langchainllm.CallOption) ([]*langchainllm.Generation, error) {
 	opts := langchainllm.CallOptions{}
 	for _, opt := range options {
 		opt(&opts)
 	}
+	generations := make([]*langchainllm.Generation, 0, len(messageSets))
 	params := DefaultModelParams()
-	if len(prompts) == 0 {
+	if opts.TopP > 0 && opts.TopP < 1 {
+		params.TopP = float32(opts.TopP)
+	}
+	if opts.Temperature > 0 && opts.Temperature < 1 {
+		params.Temperature = float32(opts.Temperature)
+	}
+	if opts.Model != "" {
+		params.Model = opts.Model
+	}
+	if len(messageSets) == 0 {
 		return nil, ErrEmptyPrompt
 	}
-	params.Prompt = []Prompt{
-		{Role: User, Content: prompts[0]},
-	}
-	klog.Infoln("prompt:", prompts[0])
-	client := NewZhiPuAI(z.apiKey)
-	needStream := opts.StreamingFunc != nil
-	if needStream {
-		res := bytes.NewBuffer(nil)
-		err := client.SSEInvoke(params, func(event *sse.Event) {
-			if string(event.Event) == "finish" {
-				return
+	for _, messageSet := range messageSets {
+		for _, m := range messageSet {
+			typ := m.GetType()
+			switch typ {
+			case schema.ChatMessageTypeAI:
+				params.Prompt = append(params.Prompt, Prompt{Role: Assistant, Content: m.GetContent()})
+			case schema.ChatMessageTypeHuman, schema.ChatMessageTypeGeneric:
+				params.Prompt = append(params.Prompt, Prompt{Role: User, Content: m.GetContent()})
+			default:
+				klog.Infof("zhipuai: message type %s not supported, just skip\n", typ)
 			}
-			_, _ = res.Write(event.Data)
-			_ = opts.StreamingFunc(ctx, event.Data)
-		})
+		}
+		klog.Infof("all history prompts: %#v\n", params.Prompt)
+		client := NewZhiPuAI(z.apiKey)
+		needStream := opts.StreamingFunc != nil
+		if needStream {
+			res := bytes.NewBuffer(nil)
+			err := client.SSEInvoke(params, func(event *sse.Event) {
+				if string(event.Event) == "finish" {
+					return
+				}
+				_, _ = res.Write(event.Data)
+				_ = opts.StreamingFunc(ctx, event.Data)
+			})
+			if err != nil {
+				return nil, err
+			}
+			return []*langchainllm.Generation{
+				{
+					Text: res.String(),
+				},
+			}, nil
+		}
+		resp, err := client.Invoke(params)
 		if err != nil {
 			return nil, err
 		}
-		return []*langchainllm.Generation{
-			{
-				Text: res.String(),
-			},
-		}, nil
+		if len(resp.Data.Choices) == 0 {
+			return nil, ErrEmptyResponse
+		}
+		generationInfo := make(map[string]any, reflect.ValueOf(resp.Data.Usage).NumField())
+		generationInfo["TotalTokens"] = resp.Data.Usage.TotalTokens
+		var s string
+		if err := json.Unmarshal([]byte(resp.Data.Choices[0].Content), &s); err != nil {
+			return nil, err
+		}
+		msg := &schema.AIChatMessage{
+			Content: strings.TrimSpace(s),
+		}
+		generations = append(generations, &langchainllm.Generation{
+			Message:        msg,
+			Text:           msg.Content,
+			GenerationInfo: generationInfo,
+		})
 	}
-	resp, err := client.Invoke(params)
-	if err != nil {
-		return nil, err
-	}
-	var s string
-	klog.Infoln("resp:", resp.String())
-	if err := json.Unmarshal([]byte(resp.Data.Choices[0].Content), &s); err != nil {
-		return nil, err
-	}
-	return []*langchainllm.Generation{
-		{
-			Text: strings.TrimSpace(s),
-		},
-	}, nil
-}
-
-func (z ZhiPuAILLM) GeneratePrompt(ctx context.Context, promptValues []schema.PromptValue, options ...langchainllm.CallOption) (langchainllm.LLMResult, error) {
-	return langchainllm.GeneratePrompt(ctx, z, promptValues, options...)
-}
-
-func (z ZhiPuAILLM) GetNumTokens(text string) int {
-	// TODO implement me
-	panic("implement me")
+	return generations, nil
 }
