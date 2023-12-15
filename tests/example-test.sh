@@ -264,7 +264,25 @@ waitCRDStatusReady "Application" "arcadia" "base-chat-with-knowledgebase"
 sleep 3
 curl -XPOST http://127.0.0.1:8081/chat --data '{"query":"旷工最小计算单位为多少天？","response_mode":"blocking","conversion_id":"","app_name":"base-chat-with-knowledgebase", "app_namespace":"arcadia"}' | jq -e '.message'
 
-info "10 show apiserver logs for debug"
+info "10 validation：conversion chat app can work normally"
+kubectl apply -f config/samples/app_llmchain_chat_with_bot.yaml
+waitCRDStatusReady "Application" "arcadia" "base-chat-with-bot"
+sleep 3
+resp1=$(curl -XPOST http://127.0.0.1:8081/chat --data '{"query":"Hi! I am Jim","response_mode":"blocking","conversion_id":"","app_name":"base-chat-with-bot", "app_namespace":"arcadia"}')
+echo $resp1
+echo $resp1 | jq -e '.message'
+conversion_id=$(echo $resp1 | jq -r '.conversion_id')
+resp2=$(curl -XPOST http://127.0.0.1:8081/chat --data '{"query":"What is my name?","response_mode":"blocking","conversion_id":"'$conversion_id'","app_name":"base-chat-with-bot", "app_namespace":"arcadia"}')
+echo $resp2
+echo $resp2 | jq -e '.message'
+resp3=$(curl -XPOST http://127.0.0.1:8081/chat --data '{"query":"Are you sure that my name is Jim?","response_mode":"blocking","conversion_id":"'$conversion_id'","app_name":"base-chat-with-bot", "app_namespace":"arcadia"}')
+echo $resp3
+echo $resp3 | jq -e '.message'
+resp4=$(curl -XPOST http://127.0.0.1:8081/chat --data '{"query":"What is my name?","response_mode":"blocking","conversion_id":"'$conversion_id'","app_name":"base-chat-with-bot", "app_namespace":"arcadia"}')
+echo $resp4
+echo $resp4 | jq -e '.message'
+
+info "11 show apiserver logs for debug"
 kubectl logs --tail=100 -n arcadia -l app=arcadia-apiserver >/tmp/apiserver.log
 cat /tmp/apiserver.log
 

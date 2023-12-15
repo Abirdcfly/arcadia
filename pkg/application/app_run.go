@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"reflect"
 
+	langchaingoschema "github.com/tmc/langchaingo/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/strings/slices"
@@ -37,9 +38,9 @@ import (
 
 type Input struct {
 	Question string
-	// History  []schema.ChatMessage
 	// overrideConfig
 	NeedStream bool
+	History    langchaingoschema.ChatMessageHistory
 }
 type Output struct {
 	Answer string
@@ -141,8 +142,9 @@ func (a *Application) Init(ctx context.Context, cli dynamic.Interface) (err erro
 
 func (a *Application) Run(ctx context.Context, cli dynamic.Interface, input Input) (output Output, outputStream chan string, err error) {
 	out := map[string]any{
-		"question":      input.Question,
-		"answer_stream": make(chan string, 1000),
+		"question":       input.Question,
+		"_answer_stream": make(chan string, 1000),
+		"_history":       input.History,
 	}
 	visited := make(map[string]bool)
 	waitRunningNodes := list.New()
@@ -165,12 +167,12 @@ func (a *Application) Run(ctx context.Context, cli dynamic.Interface, input Inpu
 			waitRunningNodes.PushBack(n)
 		}
 	}
-	if a, ok := out["answer"]; ok {
+	if a, ok := out["_answer"]; ok {
 		if answer, ok := a.(string); ok && len(answer) > 0 {
 			output = Output{Answer: answer}
 		}
 	}
-	if a, ok := out["answer_stream"]; ok {
+	if a, ok := out["_answer_stream"]; ok {
 		if answer, ok := a.(chan string); ok && len(answer) > 0 {
 			outputStream = answer
 		}

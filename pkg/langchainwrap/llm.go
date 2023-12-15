@@ -86,7 +86,7 @@ func GetLangchainLLM(ctx context.Context, llm *v1alpha1.LLM, c client.Client, cl
 			return nil, fmt.Errorf("worker.spec.model not defined")
 		}
 		modelName := worker.MakeRegistrationModelName()
-		return openai.New(openai.WithModel(modelName), openai.WithBaseURL(gateway.APIServer), openai.WithToken("fake"))
+		return openai.NewChat(openai.WithModel(modelName), openai.WithBaseURL(gateway.APIServer), openai.WithToken("fake"))
 	}
 	return nil, fmt.Errorf("unknown provider type")
 }

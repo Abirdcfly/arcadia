@@ -54,7 +54,7 @@ func (p *Prompt) Run(ctx context.Context, cli dynamic.Interface, args map[string
 	}
 	template := prompts.NewChatPromptTemplate([]prompts.MessageFormatter{
 		// prompts.NewSystemMessagePromptTemplate(instance.Spec.SystemMessage, []string{}), // It's not working now, and it's counterproductive.
-		prompts.NewHumanMessagePromptTemplate(instance.Spec.UserMessage, []string{"question"}),
+		prompts.NewHumanMessagePromptTemplate(instance.Spec.UserMessage, []string{"question", "history"}),
 	})
 	// todo format
 	p.ChatPromptTemplate = template

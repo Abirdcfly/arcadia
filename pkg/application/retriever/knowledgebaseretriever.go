@@ -47,7 +47,7 @@ func NewKnowledgeBaseRetriever(ctx context.Context, baseNode base.BaseNode, cli 
 	obj, err := cli.Resource(schema.GroupVersionResource{Group: apiretriever.GroupVersion.Group, Version: apiretriever.GroupVersion.Version, Resource: "knowledgebaseretrievers"}).
 		Namespace(baseNode.Ref.GetNamespace(ns)).Get(ctx, baseNode.Ref.Name, metav1.GetOptions{})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cant find the retriever in cluster: %w", err)
 	}
 	err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), instance)
 	if err != nil {
