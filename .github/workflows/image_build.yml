@@ -3,6 +3,8 @@ name: Build KubeAGI arcadia image
 on:
   push:
     branches: [main]
+    tags:
+      - 'v*'
 env:
   GO_VER: 1.20
   GO_TAGS: ""
@@ -10,7 +12,7 @@ env:
 
 jobs:
   image:
-    if: github.repository == 'kubeagi/arcadia'
+#     if: github.repository == 'kubeagi/arcadia'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
