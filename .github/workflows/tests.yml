@@ -80,3 +80,19 @@ jobs:
           # show only new issues if it's a pull request.
           only-new-issues: true
           skip-cache: true
+
+  prapre-push-test:
+    name: some file sync
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup Golang
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+      - name: make prapre-push
+        run: |
+          make prepare-push
+          git diff
+          git diff --exit-code -- .
