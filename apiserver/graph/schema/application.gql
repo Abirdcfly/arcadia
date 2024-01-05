@@ -7,7 +7,7 @@ mutation createApplication($input:CreateApplicationMetadataInput!){
             labels
             annotations
             displayName
-            description
+            descriptionss
             icon
         }
     }
