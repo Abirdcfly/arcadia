@@ -29,12 +29,18 @@ const (
 	OpenAI    LLMType = "openai"
 	ZhiPuAI   LLMType = "zhipuai"
 	DashScope LLMType = "dashscope"
+	GoogleAI  LLMType = "googleai"
 	Unknown   LLMType = "unknown"
 )
 
-var OpenAIModels = []string{"gpt-3.5", "gpt-3.5-turbo"}
+const (
+	GPT35      = "gpt-3.5"
+	GPT35Trubo = "gpt-3.5-turbo"
+)
 
-var (
+var OpenAIModels = []string{GPT35, GPT35Trubo}
+
+const (
 	ZhiPuAILite  string = "chatglm_lite"
 	ZhiPuAIStd   string = "chatglm_std"
 	ZhiPuAIPro   string = "chatglm_pro"
@@ -46,6 +52,7 @@ var (
 	// Character LLM
 	ZhiPuAICharGLM3 string = "charglm-3"
 )
+
 var ZhiPuAIModels = []string{ZhiPuAILite, ZhiPuAIStd, ZhiPuAIPro, ZhiPuAITurbo, ZhiPuAIGLM3Turbo, ZhiPuAIGLM4}
 
 type LLM interface {

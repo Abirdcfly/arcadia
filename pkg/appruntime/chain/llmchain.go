@@ -52,7 +52,7 @@ func (l *LLMChain) Run(ctx context.Context, cli dynamic.Interface, args map[stri
 	if !ok {
 		return args, errors.New("no llm")
 	}
-	llm, ok := v1.(llms.LLM)
+	llm, ok := v1.(llms.Model)
 	if !ok {
 		return args, errors.New("llm not llms.LanguageModel")
 	}

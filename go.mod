@@ -89,7 +89,7 @@ require (
 )
 
 require (
-	cloud.google.com/go/compute v1.23.1 // indirect
+	cloud.google.com/go/compute v1.23.3 // indirect
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
 	github.com/Azure/go-autorest v14.2.0+incompatible // indirect
 	github.com/Azure/go-autorest/autorest v0.11.18 // indirect
@@ -159,11 +159,11 @@ require (
 	golang.org/x/crypto v0.17.0 // indirect
 	golang.org/x/exp v0.0.0-20230713183714-613f0c0eb8a1 // indirect
 	golang.org/x/net v0.19.0 // indirect
-	golang.org/x/oauth2 v0.13.0
+	golang.org/x/oauth2 v0.15.0
 	golang.org/x/sys v0.15.0 // indirect
 	golang.org/x/term v0.15.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
-	golang.org/x/time v0.0.0-20220210224613-90d013bbcef8 // indirect
+	golang.org/x/time v0.5.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/protobuf v1.32.0 // indirect
@@ -181,4 +181,4 @@ require (
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
 
-replace github.com/tmc/langchaingo => github.com/Abirdcfly/langchaingo v0.0.0-20240124015404-c7798664fdb1 // branch arcadia
+replace github.com/tmc/langchaingo => github.com/Abirdcfly/langchaingo v0.0.0-20240126011924-87c87b6b7c6d // branch 20240126_pgdims, sync upstream main and cherry-pick #548

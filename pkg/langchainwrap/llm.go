@@ -41,7 +41,7 @@ const (
 	GatewayUseExternalURLEnv = "GATEWAY_USE_EXTERNAL_URL"
 )
 
-func GetLangchainLLM(ctx context.Context, llm *v1alpha1.LLM, c client.Client, cli dynamic.Interface) (langchainllms.LLM, error) {
+func GetLangchainLLM(ctx context.Context, llm *v1alpha1.LLM, c client.Client, cli dynamic.Interface) (langchainllms.Model, error) {
 	if err := utils.ValidateClient(c, cli); err != nil {
 		return nil, err
 	}
