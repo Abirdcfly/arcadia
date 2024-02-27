@@ -157,7 +157,7 @@ func (r *ModelReconciler) Initialize(ctx context.Context, logger logr.Logger, in
 	}
 	// For model's full storage path
 	currentFullPath := instanceDeepCopy.FullPath()
-	if v := instanceDeepCopy.Annotations[arcadiav1alpha1.LabelModelFullPath]; v != currentFullPath {
+	if v := instanceDeepCopy.Annotations[arcadiav1alpha1.LabelModelFullPath]; len(v) == 0 {
 		instanceDeepCopy.Annotations[arcadiav1alpha1.LabelModelFullPath] = currentFullPath
 		update = true
 	}
