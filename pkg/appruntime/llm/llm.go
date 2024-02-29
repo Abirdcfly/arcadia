@@ -57,7 +57,7 @@ func (z *LLM) Init(ctx context.Context, cli client.Client, _ map[string]any) err
 }
 
 func (z *LLM) Run(ctx context.Context, _ client.Client, args map[string]any) (map[string]any, error) {
-	args["llm"] = z
+	args[base.LangchaingoLLMKeyInArg] = z
 	logger := klog.FromContext(ctx)
 	logger.Info("use llm", "name", z.Ref.Name, "namespace", z.RefNamespace())
 	return args, nil

@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rerank-mock
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rerank-mock
+  template:
+    metadata:
+      labels:
+        app: rerank-mock
+    spec:
+      containers:
+      -   image: controller:rerank-mock
+          imagePullPolicy: IfNotPresent
+          name: rerank-mock
+          ports:
+            - containerPort: 8123
+              protocol: TCP
+          resources: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rerank-mock
+spec:
+  ports:
+    - name: api
+      port: 8123
+      protocol: TCP
+      targetPort: 8123
+  selector:
+    app: rerank-mock
+  type: ClusterIP

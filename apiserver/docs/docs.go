@@ -1728,6 +1728,11 @@ const docTemplate = `{
                     "type": "string",
                     "example": "q: 旷工最小计算单位为多少天？"
                 },
+                "rerank_score": {
+                    "description": "RerankScore",
+                    "type": "number",
+                    "example": 0.58124
+                },
                 "score": {
                     "description": "vector search score",
                     "type": "number",

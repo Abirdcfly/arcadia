@@ -30,6 +30,7 @@ import (
 
 	agent "github.com/kubeagi/arcadia/api/app-node/agent/v1alpha1"
 	"github.com/kubeagi/arcadia/api/app-node/chain/v1alpha1"
+	"github.com/kubeagi/arcadia/pkg/appruntime/base"
 	"github.com/kubeagi/arcadia/pkg/appruntime/retriever"
 	"github.com/kubeagi/arcadia/pkg/tools/bingsearch"
 )
@@ -37,13 +38,13 @@ import (
 func stream(res map[string]any) func(ctx context.Context, chunk []byte) error {
 	return func(ctx context.Context, chunk []byte) error {
 		logger := klog.FromContext(ctx)
-		if _, ok := res["_answer_stream"]; !ok {
+		if _, ok := res[base.OutputAnserStreamChanKeyInArg]; !ok {
 			logger.Info("no _answer_stream found, create a new one")
-			res["_answer_stream"] = make(chan string)
+			res[base.OutputAnserStreamChanKeyInArg] = make(chan string)
 		}
-		streamChan, ok := res["_answer_stream"].(chan string)
+		streamChan, ok := res[base.OutputAnserStreamChanKeyInArg].(chan string)
 		if !ok {
-			err := fmt.Errorf("answer_stream is not chan string, but %T", res["_answer_stream"])
+			err := fmt.Errorf("answer_stream is not chan string, but %T", res[base.OutputAnserStreamChanKeyInArg])
 			logger.Error(err, "answer_stream is not chan string")
 			return err
 		}

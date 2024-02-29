@@ -306,10 +306,10 @@ func (cs *ChatServer) GenerateSingleDocSummary(ctx context.Context, req Conversa
 		return "", ErrNoLLMProvidedInApplication
 	}
 	out := map[string]any{
-		"question":       req.Query,
-		"_answer_stream": respStream,
-		"llm":            llm,
-		"documents":      documents,
+		"question": req.Query,
+		runtimebase.OutputAnserStreamChanKeyInArg: respStream,
+		"llm":       llm,
+		"documents": documents,
 	}
 	if req.ResponseMode == "streaming" {
 		out["_need_stream"] = true
@@ -323,7 +323,7 @@ func (cs *ChatServer) GenerateSingleDocSummary(ctx context.Context, req Conversa
 	if err != nil {
 		return "", fmt.Errorf("failed to generate summary due to %s", err.Error())
 	}
-	a, ok := out["_answer"]
+	a, ok := out[runtimebase.OutputAnserKeyInArg]
 	if !ok {
 		return "", errors.New("empty answer")
 	}

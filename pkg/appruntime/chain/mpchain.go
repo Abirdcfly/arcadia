@@ -89,7 +89,7 @@ func (l *MapReduceChain) Init(ctx context.Context, cli client.Client, args map[s
 		return errors.New("no arguments provided for MapReduceChain")
 	}
 	// initialize the LLM
-	v1, ok := args["llm"]
+	v1, ok := args[base.LangchaingoLLMKeyInArg]
 	if !ok {
 		return errors.New("no llm")
 	}
@@ -165,7 +165,7 @@ func (l *MapReduceChain) Run(ctx context.Context, cli client.Client, args map[st
 
 	// run LLMChain
 	needStream := false
-	needStream, ok = args["_need_stream"].(bool)
+	needStream, ok = args[base.InputIsNeedStreamKeyInArg].(bool)
 	if ok && needStream {
 		l.chainCallOptions = append(l.chainCallOptions, chains.WithStreamingFunc(stream(args)))
 	}
@@ -175,7 +175,7 @@ func (l *MapReduceChain) Run(ctx context.Context, cli client.Client, args map[st
 	out, err = handleNoErrNoOut(ctx, needStream, out, err, l.LLMChain, args, l.chainCallOptions)
 	klog.FromContext(ctx).V(5).Info("use MapReduceChain, blocking out:" + out)
 	if err == nil {
-		args["_answer"] = out
+		args[base.OutputAnserKeyInArg] = out
 		return args, nil
 	}
 	return args, fmt.Errorf("mapreaducechain run error: %w", err)

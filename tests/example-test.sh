@@ -46,7 +46,7 @@ function debugInfo {
 	fi
 	if [[ $GITHUB_ACTIONS == "true" ]]; then
 		warning "debugInfo start 🧐"
-		mkdir -p $LOG_DIR
+		mkdir -p $LOG_DIR || true
 
 		warning "1. Try to get all resources "
 		kubectl api-resources --verbs=list -o name | xargs -n 1 kubectl get -A --ignore-not-found=true --show-kind=true >$LOG_DIR/get-all-resources-list.log
@@ -187,7 +187,7 @@ function getRespInAppChat() {
 	START_TIME=$(date +%s)
 	while true; do
 		data=$(jq -n --arg appname "$appname" --arg query "$query" --arg namespace "$namespace" --arg conversationID "$conversationID" '{"query":$query,"response_mode":"blocking","conversation_id":$conversationID,"app_name":$appname, "app_namespace":$namespace}')
-		resp=$(curl -s -XPOST http://127.0.0.1:8081/chat --data "$data")
+		resp=$(curl --max-time $TimeoutSeconds -s -XPOST http://127.0.0.1:8081/chat --data "$data")
 		ai_data=$(echo $resp | jq -r '.message')
 		references=$(echo $resp | jq -r '.references')
 		if [ -z "$ai_data" ] || [ "$ai_data" = "null" ]; then
@@ -382,7 +382,7 @@ waitCRDStatusReady "Application" "arcadia" "base-chat-with-knowledgebase"
 sleep 3
 getRespInAppChat "base-chat-with-knowledgebase" "arcadia" "公司的考勤管理制度适用于哪些人员？" "" "true"
 info "8.2.1.2 When no related doc is found, return retriever.spec.docNullReturn info"
-getRespInAppChat "base-chat-with-knowledgebase" "arcadia" "飞天的主演是谁？" "" "false"
+getRespInAppChat "base-chat-with-knowledgebase" "arcadia" "飞天的主演是谁？" "" "true"
 expected=$(kubectl get knowledgebaseretrievers -n arcadia base-chat-with-knowledgebase -o json | jq -r .spec.docNullReturn)
 if [[ $ai_data != $expected ]]; then
 	echo "when no related doc is found, return retriever.spec.docNullReturn info should be:"$expected ", but resp:"$resp
@@ -395,7 +395,27 @@ waitCRDStatusReady "Application" "arcadia" "base-chat-with-knowledgebase-pgvecto
 sleep 3
 getRespInAppChat "base-chat-with-knowledgebase-pgvector" "arcadia" "公司的考勤管理制度适用于哪些人员？" "" "true"
 info "8.2.2.2 When no related doc is found, return retriever.spec.docNullReturn info"
-getRespInAppChat "base-chat-with-knowledgebase-pgvector" "arcadia" "飞天的主演是谁？" "" "false"
+getRespInAppChat "base-chat-with-knowledgebase-pgvector" "arcadia" "飞天的主演是谁？" "" "true"
+expected=$(kubectl get knowledgebaseretrievers -n arcadia base-chat-with-knowledgebase -o json | jq -r .spec.docNullReturn)
+if [[ $ai_data != $expected ]]; then
+	echo "when no related doc is found, return retriever.spec.docNullReturn info should be:"$expected ", but resp:"$resp
+	exit 1
+fi
+
+info "8.2.3 QA app using knowledgebase base on pgvector and rerank"
+if [[ $GITHUB_ACTIONS == "true" ]]; then
+	docker build --build-arg="GOPROXY=https://proxy.golang.org/,direct" -t controller:rerank-mock -f Dockerfile.rerank-mock .
+else
+	docker build -t controller:rerank-mock -f Dockerfile.rerank-mock .
+fi
+kind load docker-image controller:rerank-mock --name=$KindName
+kubectl apply -f tests/rerank-mock/deploy-svc.yaml
+kubectl apply -f config/samples/app_retrievalqachain_knowledgebase_pgvector_rerank.yaml
+waitCRDStatusReady "Application" "arcadia" "base-chat-with-knowledgebase-pgvector-rerank"
+sleep 3
+getRespInAppChat "base-chat-with-knowledgebase-pgvector-rerank" "arcadia" "公司的考勤管理制度适用于哪些人员？" "" "true"
+info "8.2.3.2 When no related doc is found, return retriever.spec.docNullReturn info"
+getRespInAppChat "base-chat-with-knowledgebase-pgvector-rerank" "arcadia" "飞天的主演是谁？" "" "true"
 expected=$(kubectl get knowledgebaseretrievers -n arcadia base-chat-with-knowledgebase -o json | jq -r .spec.docNullReturn)
 if [[ $ai_data != $expected ]]; then
 	echo "when no related doc is found, return retriever.spec.docNullReturn info should be:"$expected ", but resp:"$resp

@@ -139,15 +139,13 @@ func (a *Application) Init(ctx context.Context, cli client.Client) (err error) {
 
 func (a *Application) Run(ctx context.Context, cli client.Client, respStream chan string, input Input) (output Output, err error) {
 	out := map[string]any{
-		"question":       input.Question,
-		"files":          input.Files,
-		"_answer_stream": respStream,
-		"_history":       input.History,
+		base.InputQuestionKeyInArg:                 input.Question,
+		"files":                                    input.Files,
+		base.OutputAnserStreamChanKeyInArg:         respStream,
+		base.InputIsNeedStreamKeyInArg:             input.NeedStream,
+		base.LangchaingoChatMessageHistoryKeyInArg: input.History,
 		// Use an empty context before run
 		"context": "",
-	}
-	if input.NeedStream {
-		out["_need_stream"] = true
 	}
 	visited := make(map[string]bool)
 	waitRunningNodes := list.New()
@@ -170,6 +168,10 @@ func (a *Application) Run(ctx context.Context, cli client.Client, respStream cha
 			}
 			klog.FromContext(ctx).V(3).Info(fmt.Sprintf("try to run node:%s", e.Name()))
 			if out, err = e.Run(ctx, cli, out); err != nil {
+				var er *base.AppStopEarlyError
+				if errors.As(err, &er) {
+					return Output{Answer: er.Msg}, nil
+				}
 				return Output{}, fmt.Errorf("run node %s: %w", e.Name(), err)
 			}
 			defer e.Cleanup()
@@ -179,12 +181,12 @@ func (a *Application) Run(ctx context.Context, cli client.Client, respStream cha
 			waitRunningNodes.PushBack(n)
 		}
 	}
-	if a, ok := out["_answer"]; ok {
+	if a, ok := out[base.OutputAnserKeyInArg]; ok {
 		if answer, ok := a.(string); ok && len(answer) > 0 {
 			output = Output{Answer: answer}
 		}
 	}
-	if a, ok := out["_references"]; ok {
+	if a, ok := out[base.RuntimeRetrieverReferencesKeyInArg]; ok {
 		if references, ok := a.([]retriever.Reference); ok && len(references) > 0 {
 			output.References = references
 		}
@@ -224,6 +226,9 @@ func InitNode(ctx context.Context, appNamespace, name string, ref arcadiav1alpha
 		case "knowledgebaseretriever":
 			logger.V(3).Info("initnode knowledgebaseretriever")
 			return retriever.NewKnowledgeBaseRetriever(baseNode), nil
+		case "rerankretriever":
+			logger.V(3).Info("initnode rerankretriever")
+			return retriever.NewRerankRetriever(baseNode), nil
 		default:
 			return nil, err
 		}

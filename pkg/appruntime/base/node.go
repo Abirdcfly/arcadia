@@ -121,3 +121,9 @@ func (c *BaseNode) Ready() (bool, string) {
 
 func (c *BaseNode) Cleanup() {
 }
+
+type AppStopEarlyError struct {
+	Msg string
+}
+
+func (e *AppStopEarlyError) Error() string { return e.Msg }

@@ -53,7 +53,7 @@ spec:
               numDocuments:
                 default: 5
                 description: NumDocuments is the max number of documents to return.
-                maximum: 10
+                maximum: 50
                 minimum: 1
                 type: integer
               scoreThreshold:
