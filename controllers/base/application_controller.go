@@ -160,6 +160,8 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 // 7. should not have cycle TODO
 // 8. nodeName should be unique
 func (r *ApplicationReconciler) validateNodes(ctx context.Context, _ logr.Logger, app *arcadiav1alpha1.Application) (*arcadiav1alpha1.Application, ctrl.Result, error) {
+	log := ctrl.LoggerFrom(ctx)
+	log = log.WithValues("Generation", app.GetGeneration(), "ObservedGeneration", app.Status.ObservedGeneration, "creator", app.Spec.Creator)
 	var input, output int
 	var outputNodeName string
 	nodeName := make(map[string]bool, len(app.Spec.Nodes))
@@ -228,6 +230,7 @@ func (r *ApplicationReconciler) validateNodes(ctx context.Context, _ logr.Logger
 		r.setCondition(app, app.Status.ErrorCondition(err.Error())...)
 		return app, ctrl.Result{RequeueAfter: waitMedium}, nil
 	}
+	log.V(3).Info("runtime app init done")
 
 	visited := make(map[string]bool)
 	waitRunningNodes := list.New()
@@ -248,16 +251,19 @@ func (r *ApplicationReconciler) validateNodes(ctx context.Context, _ logr.Logger
 				waitRunningNodes.PushBack(e)
 				continue
 			}
+			log.V(3).Info("check node ready...", "node", e.Name())
 			if isReady, errMsg := e.Ready(); !isReady {
 				r.setCondition(app, app.Status.ErrorCondition(fmt.Sprintf("node %s init failed: %s", e.Name(), errMsg))...)
 				return app, ctrl.Result{RequeueAfter: waitMedium}, nil
 			}
 			visited[e.Name()] = true
+			log.V(3).Info("node become ready", "node", e.Name())
 		}
 		for _, n := range e.GetNextNode() {
 			waitRunningNodes.PushBack(n)
 		}
 	}
+	log.V(3).Info("become ready")
 
 	r.setCondition(app, app.Status.ReadyCondition()...)
 	return app, ctrl.Result{}, nil
